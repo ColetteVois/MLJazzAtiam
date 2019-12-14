@@ -4,6 +4,9 @@
 import numpy as np
 import os
 
+def AddTonality(string):
+    sting
+
 def preProcessing(FolderName):
     jazz_xlab = os.listdir(FolderName)# FolderName is a string which is called 'jazz_xlab'
     ExtraBeatChord = []
@@ -23,23 +26,33 @@ def preProcessing(FolderName):
             CurrentBeat = int((CurrentLine[2]))
             CurrentChord = CurrentLine[5]
             ExtraBeatChord.append([CurrentBeat,CurrentChord])
-
+        
+        Tonality = CurrentLine[::-1][0];
+        
         # write the Chords in a list respect their beat number
         for j in range(len(ExtraBeatChord)):
             for k in range(ExtraBeatChord[j][0]):
                 preSequence.append(ExtraBeatChord[j][1])
+        
+        #map(+str(Tonality),preSequence)
 
         # re-write the chord sequence as 16 chords in every line      
         for i in range(len(preSequence)):
             if i+16 <= len(preSequence):
-                ChordSequence.append(preSequence[i:i+16])
-    return [ChordSequence, ]
+                temp = preSequence[i:i+16]
+                for j in range(16) :
+                    if (j%4 + 1 +i%4)%4 == 0:
+                        temp[j] = temp[j] +str(':') + str(4)+str(':')+str(Tonality)
+                    else:
+                        temp[j] = temp[j] +str(':') + str(((j%4 + 1 +i%4))%4)+str(':')+str(Tonality)
+                    
+                ChordSequence.append(temp)
+    return ChordSequence
 
-
-ChordSequence = preProcessing('test_xlab')
+ChordSequence = preProcessing('try_xlab')
 print(ChordSequence)
 
 
-    
+
 
 

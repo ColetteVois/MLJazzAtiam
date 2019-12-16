@@ -15,7 +15,6 @@ def preProcessing(FolderName):
     csvFile = open(FolderName+'../preprocessed_data.csv', 'w')
 
     for MusicPiece in jazz_xlab :
-        print(MusicPiece)
         # read every .xlab file and split the content in line
         file = open(FolderName+MusicPiece, 'r')
         Content = file.read()
@@ -26,7 +25,7 @@ def preProcessing(FolderName):
         for i in range(len(Content)-1):
             CurrentLine = Content[i+1].split(' ')
             CurrentBeat = int((CurrentLine[2]))
-            CurrentChord = CurrentLine[5]
+            CurrentChord = CurrentLine[4]
             ExtraBeatChord.append([CurrentBeat,CurrentChord])
 
         Tonality = CurrentLine[::-1][0];

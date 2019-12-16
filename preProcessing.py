@@ -9,12 +9,13 @@ def AddTonality(string):
 
 def preProcessing(FolderName):
     jazz_xlab = os.listdir(FolderName)# FolderName is a string which is called 'jazz_xlab'
-    ExtraBeatChord = []
-    preSequence = []
-    ChordSequence = []
     csvFile = open(FolderName+'../preprocessed_data.csv', 'w')
 
+    n = 1
     for MusicPiece in jazz_xlab :
+        ExtraBeatChord = []
+        preSequence = []
+        ChordSequence = []
         # read every .xlab file and split the content in line
         file = open(FolderName+MusicPiece, 'r')
         Content = file.read()

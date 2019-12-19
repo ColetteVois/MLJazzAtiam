@@ -9,6 +9,7 @@ from torchvision import transforms, utils
 from chordUtil import reduChord
 from sklearn import preprocessing
 
+listeA0 = ['N','Ab:maj', 'A:maj', 'Bb:maj','B:maj','C:maj','Db:maj','D:maj','Eb:maj','E:maj','F:maj', 'Gb:maj','G:maj', 'Ab:min', 'A:min', 'Bb:min','B:min','C:min','Db:min','D:min','Eb:min','E:min','F:min', 'Gb:min','G:min']
 
 class ChordSequencesDatasetClass(Dataset):
     def __init__(self, csv_file, transform=None):
@@ -31,7 +32,6 @@ class ChordSequencesDatasetClass(Dataset):
 
         if self.transform:
             chords = self.transform(chords)
-
         sample = {'chords' : chords, 'beat' : beat, 'key' : key}
 
         return sample
@@ -46,7 +46,25 @@ class ReduChord(object):
         for j in range(16):
             chords_redu.append(reduChord(chords[j], self.alpha))
         return pd.Series(chords_redu)
+    
+class oneHotVector(object):
+    def __init__(self, liste = listeA0):
+        self.liste = listeA0 #Alphabet used for reduction
 
-#alphabet = 'a0'
-#chordSeqDatasetTrain = ChordSequencesDatasetClass('../data/preprocessed_data_train.csv', ReduChord(alphabet))
-#dataloader = DataLoader(chordSeqDatasetTrain, batch_size=4, shuffle=True, num_workers=4)
+    def __call__(self, chords, liste = listeA0):
+        oneVect = torch.zeros([16, 25], dtype=torch.int32)
+        print(chords)
+        for i in range(16):
+            numChord = listeA0.index(chords[i])   
+            oneVect[i, numChord] = 1
+        return oneVect
+
+alphabet = 'a0'
+chordSeqDatasetTrain = ChordSequencesDatasetClass('data/preprocessed_data_test.csv', transform=transforms.Compose([ReduChord(alphabet), oneHotVector(listeA0)]))
+dataloader = DataLoader(chordSeqDatasetTrain, batch_size=4, shuffle=True, num_workers=4)
+
+
+
+
+
+            

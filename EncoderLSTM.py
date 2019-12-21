@@ -21,12 +21,12 @@ class EncoderRNN(nn.Module):
         self.dict_size = dict_size
         self.batch_size = batch_size
         
-        self.embedding = nn.Embedding(dict_size, hidden_size)
+        #self.embedding = nn.Embedding(dict_size, hidden_size)
         self.lstm = nn.LSTM(input_size=input_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
 
     def forward(self, input, hidden):
-        embedded = self.embedding(input)
-        output, hidden = self.lstm(embedded, hidden)
+        input = input.type(torch.FloatTensor)
+        output, hidden = self.lstm(input, hidden)
         return output, hidden
 
     def initHidden(self):
@@ -39,24 +39,18 @@ class DecoderRNN(nn.Module):
         self.hidden_size = hidden_size
         self.batch_size = batch_size
 
-        self.embedding = nn.Embedding(dict_size, hidden_size)
+        #self.embedding = nn.Embedding(dict_size, hidden_size)
         #self.lstm = nn.LSTM(output_size, hidden_size, batch_first = True)
         self.lstm = nn.LSTM(input_size=output_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
-        self.out = nn.Linear(hidden_size,1)
+        self.out = nn.Linear(hidden_size,output_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, input, hidden):
-        print('input', input.size())
-        output = self.embedding(input)
-        print('embeded', output)
-        print('hidden', hidden[0])
-        output = F.relu(output)
-        print('relu', output)
+        #output = self.embedding(input)
+        input = input.type(torch.FloatTensor)
+        output = F.relu(input)
         output, hidden = self.lstm(output, hidden)
-        print('camarche lstm', output, hidden[0])
-        print('self.out(output[0])', self.out(output))
         output = self.softmax(self.out(output))
-        print('softmax', output)
         return output, hidden
 
     def initHidden(self):
@@ -76,26 +70,25 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     loss = 0
 
     encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden)
-    decoder_input = torch.zeros([4,8], device=device).to(torch.int64)
+    decoder_input = torch.zeros([4,8,25], device=device).to(torch.int64)
 
     decoder_hidden = encoder_hidden
 
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+    use_teacher_forcing = True #if random.random() < teacher_forcing_ratio else False
 
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
         decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-        print('decoder_output',decoder_output)
-        decoder_output = torch.reshape(decoder_output, (4,8))
-        print('loss',decoder_output.size(), target_tensor.size() )
-        loss += criterion(decoder_output, target_tensor)
+        #decoder_output = torch.reshape(decoder_output, (4,8))
+        #target_tensor = torch.reshape(target_tensor,(1,4*8))
+        for batch in range(4):
+            loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
         decoder_input = target_tensor  # Teacher forcing
 
     else:
         # Without teacher forcing: use its own predictions as the next input
         decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-        print('decoder_output',decoder_output)
-        decoder_output = torch.reshape(decoder_output, (4,8))
+        #decoder_output = torch.reshape(decoder_output, (4,8))
         decoder_input = decoder_output.detach()  # detach from history as input
         loss += criterion(decoder_output, target_tensor)
 
@@ -104,7 +97,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item() / target_length
+    return loss.item() #/ target_length
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -115,7 +108,7 @@ def asMinutes(s):
 def timeSince(since, percent):
     now = time.time()
     s = now - since
-    es = s / (percent)
+    es = s / (percent+0.000001)
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
@@ -127,17 +120,22 @@ def trainIters(encoder, decoder, data_loader, n_iter, print_every=1000, plot_eve
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
-    loss_function = nn.MSELoss()
+    loss_function = nn.NLLLoss()
 
-    i = 0
+    iter = 0
     for batch in data_loader:
-        if i <= n_iter:
+        if iter <= n_iter:
             #input_tensor = batch[:,:8,:].to(torch.int64)
             #target_tensor = batch[:,8:,:].to(torch.int64)
             input_tensor = batch[:,:8].to(torch.int64)
-            target_tensor = batch[:,8:].to(torch.int64)
-            print()
-
+            target_tensor2 = batch[:,8:].to(torch.int64)
+            target_tensor = torch.zeros([4,8])
+            for k in range(4):
+                for t in range(8):
+                    for j in range(25):
+                        if(target_tensor2[k,t,j]==1):
+                            target_tensor[k,t] = j
+           
             loss = train(input_tensor, target_tensor, encoder,
                          decoder, encoder_optimizer, decoder_optimizer, loss_function)
 
@@ -147,12 +145,12 @@ def trainIters(encoder, decoder, data_loader, n_iter, print_every=1000, plot_eve
             if iter % print_every == 0:
                 print_loss_avg = print_loss_total / print_every
                 print_loss_total = 0
-                print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iters),
-                                             iter, iter / n_iters * 100, print_loss_avg))
+                print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iter),
+                                             iter, iter / n_iter * 100, print_loss_avg))
 
             if iter % plot_every == 0:
                 plot_loss_avg = plot_loss_total / plot_every
                 plot_losses.append(plot_loss_avg)
                 plot_loss_total = 0
-        i = i+1
+        iter = iter+1
     showPlot(plot_losses)

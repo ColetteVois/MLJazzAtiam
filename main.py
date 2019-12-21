@@ -28,7 +28,7 @@ alpha_size = 25
 data_size = batch_size*8*hidden_size
 n_iter = 100000
 
-encoder = lstm.EncoderRNN(hidden_size, hidden_size, alpha_size, batch_size).to(device)
-decoder = lstm.DecoderRNN(hidden_size, hidden_size, alpha_size, batch_size).to(device)
+encoder = lstm.EncoderRNN(alpha_size, hidden_size, alpha_size, batch_size).to(device)
+decoder = lstm.DecoderRNN(hidden_size, alpha_size, alpha_size, batch_size).to(device)
 
 lstm.trainIters(encoder, decoder, dataloader, n_iter, print_every=500)

@@ -32,3 +32,6 @@ encoder = lstm.EncoderRNN(alpha_size, hidden_size, alpha_size, batch_size).to(de
 decoder = lstm.DecoderRNN(hidden_size, alpha_size, alpha_size, batch_size).to(device)
 
 lstm.trainIters(encoder, decoder, dataloader, n_iter, print_every=500)
+
+torch.save(encoder.state_dict(), 'encoder.dict')
+torch.save(decoder.state_dict(), 'decoder.dict')

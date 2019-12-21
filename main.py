@@ -15,7 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 alphabet = 'a0'
 listeA0 = ['N','A:maj', 'A#:maj','B:maj','C:maj', 'C#:maj','D:maj','D#:maj','E:maj','F:maj', 'F#:maj','G:maj','G#:maj', 'A:min', 'A#:min','B:min','C:min', 'C#:min','D:min','D#:min','E:min','F:min', 'F#:min','G:min','G#:min']
-chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(alphabet), dl.oneHotVector(listeA0)]))
+chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(alphabet), dl.oneHotVector(listeA0)]))
 #print(chordSeqDatasetTrain[1])
 dataloader = DataLoader(chordSeqDatasetTrain, batch_size=4, shuffle=True, num_workers=4)
 
@@ -28,7 +28,7 @@ alpha_size = 25
 data_size = batch_size*8*hidden_size
 n_iter = 100000
 
-encoder = lstm.EncoderRNN(data_size, hidden_size, alpha_size).to(device)
-decoder = lstm.DecoderRNN(hidden_size, data_size, alpha_size).to(device)
+encoder = lstm.EncoderRNN(hidden_size, hidden_size, alpha_size, batch_size).to(device)
+decoder = lstm.DecoderRNN(hidden_size, hidden_size, alpha_size, batch_size).to(device)
 
 lstm.trainIters(encoder, decoder, dataloader, n_iter, print_every=500)

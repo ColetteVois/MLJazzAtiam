@@ -16,7 +16,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 import matplotlib.pyplot as plt
-plt.switch_backend('agg')
 import matplotlib.ticker as ticker
 import numpy as np
 
@@ -35,7 +34,7 @@ class EncoderRNN(nn.Module):
         self.hidden_size = hidden_size
         self.dict_size = dict_size
         self.batch_size = batch_size
-        
+
         #self.embedding = nn.Embedding(dict_size, hidden_size)
         self.lstm = nn.LSTM(input_size=input_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
 
@@ -85,7 +84,8 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     loss = 0
 
     encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden)
-    decoder_input = torch.zeros([4,8,25], device=device).to(torch.int64)
+    #decoder_input = torch.zeros([4,8,25], device=device).to(torch.int64)
+    decoder_input = input_tensor
 
     decoder_hidden = encoder_hidden
 
@@ -112,7 +112,7 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item() #/ target_length
+    return loss.item() / 8
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -127,7 +127,7 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
-def trainIters(encoder, decoder, data_loader, n_iter, print_every=1000, plot_every=100, learning_rate=0.01):
+def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
@@ -137,35 +137,33 @@ def trainIters(encoder, decoder, data_loader, n_iter, print_every=1000, plot_eve
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
     loss_function = nn.NLLLoss()
 
-    iter = 0
-    for batch in data_loader:
-        if iter <= n_iter:
-            #input_tensor = batch[:,:8,:].to(torch.int64)
-            #target_tensor = batch[:,8:,:].to(torch.int64)
-            input_tensor = batch[:,:8].to(torch.int64)
-            target_tensor2 = batch[:,8:].to(torch.int64)
-            target_tensor = torch.zeros([4,8])
-            for k in range(4):
-                for t in range(8):
-                    for j in range(25):
-                        if(target_tensor2[k,t,j]==1):
-                            target_tensor[k,t] = j
-           
-            loss = train(input_tensor, target_tensor, encoder,
-                         decoder, encoder_optimizer, decoder_optimizer, loss_function)
+    for iter, batch in enumerate(data_loader):
+        #input_tensor = batch[:,:8,:].to(torch.int64)
+        #target_tensor = batch[:,8:,:].to(torch.int64)
+        input_tensor = batch[:,:8].to(torch.int64)
+        target_tensor2 = batch[:,8:].to(torch.int64)
+        target_tensor = torch.zeros([4,8])
+        for k in range(4):
+            for t in range(8):
+                for j in range(25):
+                    if(target_tensor2[k,t,j]==1):
+                        target_tensor[k,t] = j
 
-            print_loss_total += loss
-            plot_loss_total += loss
+        loss = train(input_tensor, target_tensor, encoder,
+                     decoder, encoder_optimizer, decoder_optimizer, loss_function)
 
-            if iter % print_every == 0:
-                print_loss_avg = print_loss_total / print_every
-                print_loss_total = 0
-                print('%s (%d %d%%) %.4f' % (timeSince(start, iter / n_iter),
-                                             iter, iter / n_iter * 100, print_loss_avg))
+        print_loss_total += loss
+        plot_loss_total += loss
 
-            if iter % plot_every == 0:
-                plot_loss_avg = plot_loss_total / plot_every
-                plot_losses.append(plot_loss_avg)
-                plot_loss_total = 0
-        iter = iter+1
+        if iter % print_every == 0:
+            print_loss_avg = print_loss_total / print_every
+            print_loss_total = 0
+            print('%s (%d %d%%) %.4f' % (timeSince(start, iter / len(data_loader)),
+                                         iter, iter / len(data_loader) * 100, print_loss_avg))
+
+        if iter % plot_every == 0:
+            plot_loss_avg = plot_loss_total / plot_every
+            plot_losses.append(plot_loss_avg)
+            plot_loss_total = 0
     showPlot(plot_losses)
+    plt.show()

@@ -4,8 +4,6 @@
 import numpy as np
 import os
 
-def AddTonality(string):
-    sting
 
 def preProcessing(FolderName):
     jazz_xlab = os.listdir(FolderName)# FolderName is a string which is called 'jazz_xlab'

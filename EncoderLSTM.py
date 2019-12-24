@@ -25,6 +25,7 @@ def showPlot(points):
     loc = ticker.MultipleLocator(base=0.2)
     ax.yaxis.set_major_locator(loc)
     plt.plot(points)
+    plt.save('fig.png')
 
 class EncoderRNN(nn.Module):
     def __init__(self, input_size, hidden_size, dict_size, batch_size):
@@ -52,17 +53,17 @@ class DecoderRNN(nn.Module):
         self.hidden_size = hidden_size
         self.batch_size = batch_size
 
-        #self.embedding = nn.Embedding(dict_size, hidden_size)
+        self.embedding = nn.Embedding(dict_size, hidden_size)
         #self.lstm = nn.LSTM(output_size, hidden_size, batch_first = True)
-        self.lstm = nn.LSTM(input_size=output_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
+        self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
         self.out = nn.Linear(hidden_size,output_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, input, hidden):
-        #output = self.embedding(input)
-        input = input.type(torch.FloatTensor)
-        output = F.relu(input)
-        output, hidden = self.lstm(output, hidden)
+        embedded = self.embedding(input)
+        #input = input.type(torch.FloatTensor)
+        output = F.relu(embedded)
+        output, hidden = self.lstm(embedded, hidden)
         output = self.softmax(self.out(output))
         return output, hidden
 
@@ -83,12 +84,12 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     loss = 0
 
     encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden)
-    decoder_input = torch.zeros([4,8,25], device=device).to(torch.int64)
-    #decoder_input = input_tensor
+    #decoder_input = torch.zeros([4,8], device=device).to(torch.int64)
+    decoder_input = input_tensor
 
     decoder_hidden = encoder_hidden
 
-    use_teacher_forcing = True #if random.random() < teacher_forcing_ratio else False
+    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
     if use_teacher_forcing:
         # Teacher forcing: Feed the target as the next input
@@ -104,15 +105,15 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
         decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
         #decoder_output = torch.reshape(decoder_output, (4,8))
         decoder_input = decoder_output.detach()  # detach from history as input
-        loss += criterion(decoder_output, target_tensor)
+        for batch in range(4):
+            loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
 
     loss.backward()
-    #print(input_tensor.grad)
 
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item() 
+    return loss.item()
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -133,14 +134,16 @@ def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=100, 
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
 
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    #encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
+    encoder_optimizer = optim.Adam(encoder.parameters())
+    #decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    decoder_optimizer = optim.Adam(decoder.parameters())
     loss_function = nn.NLLLoss()
 
     for iter, batch in enumerate(data_loader):
         #input_tensor = batch[:,:8,:].to(torch.int64)
         #target_tensor = batch[:,8:,:].to(torch.int64)
-        input_tensor = torch.tensor(batch[:,:8], dtype = torch.int64)#, requires_grad=True)
+        input_tensor = batch[:,:8].to(torch.int64)#, requires_grad=True)
         #input_tensor = batch[:,:8].to(torch.int64).requires_grad(True)
         target_tensor = batch[:,8:].to(torch.int64)
         # target_tensor = torch.zeros([4,8])
@@ -167,4 +170,4 @@ def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=100, 
             plot_losses.append(plot_loss_avg)
             plot_loss_total = 0
     showPlot(plot_losses)
-    plt.show()
+    plt.save('fig.png')

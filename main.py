@@ -13,16 +13,18 @@ from sklearn import preprocessing
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
+batch_size = 50
 alphabet = 'a0'
 listeA0 = ['N','A:maj', 'A#:maj','B:maj','C:maj', 'C#:maj','D:maj','D#:maj','E:maj','F:maj', 'F#:maj','G:maj','G#:maj', 'A:min', 'A#:min','B:min','C:min', 'C#:min','D:min','D#:min','E:min','F:min', 'F#:min','G:min','G#:min']
-chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('data/preprocessed_data_train.csv', transform=transforms.Compose([dl.ReduChord(alphabet), dl.oneHotVector(listeA0)]))
+chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_train.csv', transform=transforms.Compose([dl.ReduChord(alphabet), dl.oneHotVector(listeA0)]))
 print(len(chordSeqDatasetTrain))
-dataloader = DataLoader(chordSeqDatasetTrain, batch_size=4, shuffle=True, num_workers=4)
+dataloader = DataLoader(chordSeqDatasetTrain, batch_size=batch_size, shuffle=True, num_workers=4)
 
 print('Dataloader created\n')
 
 hidden_size = 256
-batch_size = 4
+
 alpha_size = 25
 #data_size = batch_size*alpha_size*8
 data_size = batch_size*8*hidden_size
@@ -30,7 +32,7 @@ data_size = batch_size*8*hidden_size
 encoder = lstm.EncoderRNN(alpha_size, hidden_size, alpha_size, batch_size).to(device)
 decoder = lstm.DecoderRNN(hidden_size, alpha_size, alpha_size, batch_size).to(device)
 
-lstm.trainIters(encoder, decoder, dataloader, print_every=100, learning_rate = 10)
+lstm.trainIters(encoder, decoder, dataloader, batch_size, print_every=100, learning_rate = 0.1)
 
 torch.save(encoder.state_dict(), 'encoder.dict')
 torch.save(decoder.state_dict(), 'decoder.dict')

@@ -40,7 +40,7 @@ class EncoderRNN(nn.Module):
     def forward(self, input, hidden):
         embedded = self.embedding(input)
         #input = input.type(torch.FloatTensor)
-        output, hidden = self.lstm(embedded, hidden)
+        output, hidden = self.lstm(embedded.view([self.batch_size, 1,self.hidden_size]), hidden)
         return output, hidden
 
     def initHidden(self):
@@ -57,7 +57,7 @@ class DecoderRNN(nn.Module):
         #self.lstm = nn.LSTM(output_size, hidden_size, batch_first = True)
         self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
         self.out = nn.Linear(hidden_size,output_size)
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.softmax = nn.LogSoftmax(dim=2)
 
     def forward(self, input, hidden):
         embedded = self.embedding(input)
@@ -75,7 +75,7 @@ class DecoderRNN(nn.Module):
 teacher_forcing_ratio = 0.5
 
 
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion):
+def train(input_tensor, target_tensor, batch_size, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion):
     encoder_hidden = encoder.initHidden()
 
     encoder_optimizer.zero_grad()
@@ -83,37 +83,48 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
 
     loss = 0
 
-    encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden)
+    #encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden)
     #decoder_input = torch.zeros([4,8], device=device).to(torch.int64)
-    decoder_input = input_tensor
+    input_length = input_tensor.size()[1]
+
+    for ei in range(input_length):
+        encoder_output, encoder_hidden = encoder(input_tensor[:,ei], encoder_hidden)
 
     decoder_hidden = encoder_hidden
 
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+    decoder_input = torch.autograd.Variable(torch.zeros(batch_size, 1)).type(torch.LongTensor).to(device)
 
-    if use_teacher_forcing:
-        # Teacher forcing: Feed the target as the next input
-        decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-        #decoder_output = torch.reshape(decoder_output, (4,8))
-        #target_tensor = torch.reshape(target_tensor,(1,4*8))
-        for batch in range(4):
-            loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
-        decoder_input = target_tensor  # Teacher forcing
+    for di in range(input_length):
+         decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+         for batch in range(batch_size):
+             loss += criterion(decoder_output[batch], target_tensor[batch,di].view([1]))
+         decoder_input = target_tensor[:,di].view([50,1])
 
-    else:
-        # Without teacher forcing: use its own predictions as the next input
-        decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-        #decoder_output = torch.reshape(decoder_output, (4,8))
-        decoder_input = decoder_output.detach()  # detach from history as input
-        for batch in range(4):
-            loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
+    # use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+    #
+    # if use_teacher_forcing:
+    #     # Teacher forcing: Feed the target as the next input
+    #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+    #     #decoder_output = torch.reshape(decoder_output, (4,8))
+    #     #target_tensor = torch.reshape(target_tensor,(1,4*8))
+    #     for batch in range(batch_size):
+    #         loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
+    #     decoder_input = target_tensor  # Teacher forcing
+    #
+    # else:
+    #     # Without teacher forcing: use its own predictions as the next input
+    #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+    #     #decoder_output = torch.reshape(decoder_output, (4,8))
+    #     decoder_input = decoder_output.detach()  # detach from history as input
+    #     for batch in range(batch_size):
+    #         loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
 
     loss.backward()
 
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item()
+    return loss.item()/batch_size/8
 
 def asMinutes(s):
     m = math.floor(s / 60)
@@ -128,16 +139,16 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
-def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=100, learning_rate=0.01):
+def trainIters(encoder, decoder, data_loader, batch_size, print_every=1000, plot_every=500, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
 
     #encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
-    encoder_optimizer = optim.Adam(encoder.parameters())
+    encoder_optimizer = optim.Adam(encoder.parameters(), lr = 0.0001)
     #decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.Adam(decoder.parameters())
+    decoder_optimizer = optim.Adam(decoder.parameters(), lr = 0.0001)
     loss_function = nn.NLLLoss()
 
     for iter, batch in enumerate(data_loader):
@@ -153,7 +164,7 @@ def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=100, 
         #             if(target_tensor2[k,t,j]==1):
         #                 target_tensor[k,t] = j
 
-        loss = train(input_tensor, target_tensor, encoder,
+        loss = train(input_tensor, target_tensor, batch_size, encoder,
                      decoder, encoder_optimizer, decoder_optimizer, loss_function)
 
         print_loss_total += loss

@@ -3,7 +3,7 @@
 """
 Created on Sun Dec 29 12:39:38 2019
 
-@author: stephanesobucki
+@author: yujiayang
 """
 
 from chordUtil import a0,a1,a2,a3,a5

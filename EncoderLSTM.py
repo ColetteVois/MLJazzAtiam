@@ -12,8 +12,6 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
@@ -28,10 +26,11 @@ def showPlot(points):
     plt.savefig('fig.png')
 
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, dict_size):
+    def __init__(self, input_size, hidden_size, dict_size, device):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.dict_size = dict_size
+        self.device = device
 
         self.embedding = nn.Embedding(dict_size, hidden_size)
         self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
@@ -44,13 +43,14 @@ class EncoderRNN(nn.Module):
         return output, hidden
 
     def initHidden(self, batch_size):
-        hidden = torch.zeros(1, batch_size, self.hidden_size, device=device)
+        hidden = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
         return (hidden, hidden)
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dict_size):
+    def __init__(self, hidden_size, output_size, dict_size, device):
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
+        self.device = device
 
         self.embedding = nn.Embedding(dict_size, hidden_size)
         #self.lstm = nn.LSTM(output_size, hidden_size, batch_first = True)
@@ -67,14 +67,13 @@ class DecoderRNN(nn.Module):
         return output, hidden
 
     def initHidden(self, batch_size):
-        hidden = torch.zeros(1, batch_size, self.hidden_size, device=device)
+        hidden = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
         return (hidden, hidden)
 
 
 teacher_forcing_ratio = 0.5
 
-
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion):
+def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, device):
     batch_size = input_tensor.size()[0]
 
     encoder_hidden = encoder.initHidden(batch_size)
@@ -96,14 +95,23 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
 
     decoder_input = torch.autograd.Variable(torch.zeros(batch_size, 1)).type(torch.LongTensor).to(device)
 
-    for di in range(input_length):
-         decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-         for batch in range(batch_size):
-             loss += criterion(decoder_output[batch], target_tensor[batch,di].view([1]))
-         decoder_input = target_tensor[:,di].view([batch_size,1])
+    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
-    # use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-    #
+    if use_teacher_forcing:
+        for di in range(input_length):
+            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+            for batch in range(batch_size):
+                loss += criterion(decoder_output[batch], target_tensor[batch,di].view([1]))
+            decoder_input = target_tensor[:,di].view([batch_size,1])
+    else:
+        for di in range(input_length):
+            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+            for batch in range(batch_size):
+                loss += criterion(decoder_output[batch], target_tensor[batch,di].view([1]))
+            topv, topi = decoder_output.topk(1)
+            decoder_input = topi.squeeze().detach().view([batch_size,1]) # detach from history as input
+
+
     # if use_teacher_forcing:
     #     # Teacher forcing: Feed the target as the next input
     #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
@@ -141,7 +149,7 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
-def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=500, learning_rate=0.01):
+def trainIters(encoder, decoder, data_loader, device, print_every=1000, plot_every=500, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
@@ -151,14 +159,14 @@ def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=500, 
     encoder_optimizer = optim.Adam(encoder.parameters(), lr = learning_rate)
     #decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.Adam(decoder.parameters(), lr = learning_rate)
-    loss_function = nn.NLLLoss()
+    loss_function = nn.NLLLoss().to(device)
 
     for iter, batch in enumerate(data_loader):
         #input_tensor = batch[:,:8,:].to(torch.int64)
         #target_tensor = batch[:,8:,:].to(torch.int64)
-        input_tensor = batch[:,:8].to(torch.int64)#, requires_grad=True)
+        input_tensor = batch[:,:8].to(torch.int64).to(device)#, requires_grad=True)
         #input_tensor = batch[:,:8].to(torch.int64).requires_grad(True)
-        target_tensor = batch[:,8:].to(torch.int64)
+        target_tensor = batch[:,8:].to(torch.int64).to(device)
         # target_tensor = torch.zeros([4,8])
         # for k in range(4):
         #     for t in range(8):
@@ -167,7 +175,7 @@ def trainIters(encoder, decoder, data_loader, print_every=1000, plot_every=500, 
         #                 target_tensor[k,t] = j
 
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, loss_function)
+                     decoder, encoder_optimizer, decoder_optimizer, loss_function, device)
 
         print_loss_total += loss
         plot_loss_total += loss

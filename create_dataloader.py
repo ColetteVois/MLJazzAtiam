@@ -49,15 +49,30 @@ class ReduChord(object):
             chords_redu.append(reduChord(chords[j], self.alpha))
         return pd.Series(chords_redu)
 
-class oneHotVector(object):
+class ClassVector(object):
     def __init__(self, liste = listeA0):
-        self.liste = listeA0 #Alphabet used for reduction
+        self.liste = liste #Alphabet used for reduction
 
     def __call__(self, chords, liste = listeA0):
-        #oneVect = torch.zeros([16, 25], dtype=torch.int64)
         vect = torch.zeros([16], dtype=torch.int)
         for i in range(16):
-            numChord = listeA0.index(chords[i])
-            #oneVect[i, numChord] = 1
+            numChord = self.liste.index(chords[i])
             vect[i] = numChord
         return vect
+
+class OneHotVector(object):
+    def __init__(self, liste = listeA0):
+        self.liste = liste #Alphabet used for reduction
+
+    def __call__(self, chords, liste = listeA0):
+        oneVect = torch.zeros([16, 25], dtype=torch.int64)
+        for i in range(16):
+            numChord = liste.index(chords[i])
+            oneVect[i, numChord] = 1
+        return oneVect
+
+def chordFromIndex(idx_vect, liste):
+    chord_seq = "";
+    for idx in idx_vect:
+        chord_seq = chord_seq + liste[idx] + ", "
+    return chord_seq

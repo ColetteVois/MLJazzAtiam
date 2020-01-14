@@ -12,15 +12,10 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 from create_dataloader import chordFromIndex
-
-listeA0 = ['N','A:maj', 'A#:maj','B:maj','C:maj', 'C#:maj','D:maj','D#:maj','E:maj','F:maj', 'F#:maj','G:maj','G#:maj', 'A:min', 'A#:min','B:min','C:min', 'C#:min','D:min','D#:min','E:min','F:min', 'F#:min','G:min','G#:min']
-
 
 def eval(input_tensor, target_tensor, encoder, decoder, it, print_value = False):
     encoder_hidden = encoder.initHidden(1)
@@ -35,30 +30,50 @@ def eval(input_tensor, target_tensor, encoder, decoder, it, print_value = False)
 
     decoder_hidden = encoder_hidden
 
-    decoder_input = torch.autograd.Variable(torch.zeros(1, 1)).type(torch.LongTensor).to(device)
-
-    #decoder_input = target_tensor[:,0].view([1,1])
+    #decoder_input = torch.autograd.Variable(torch.zeros(1, 1)).type(torch.LongTensor).to(device)
+    decoder_input = (25*torch.autograd.Variable(torch.zeros(1, 1))).type(torch.LongTensor)
 
     output_tensor = []
 
     error = False
 
-    for di in range(input_length):
-         decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-         decoder_guess = decoder_output.max(2)[1]
-         output_tensor.append(decoder_guess)
-         if decoder_guess != target_tensor[:,di]:
-             errors += 1
-             error = True
-         decoder_input = target_tensor[:,di].view([1,1])
-         #decoder_input = decoder_guess
-         total += 1
+    # for di in range(input_length):
+    #      decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+    #      #decoder_guess = decoder_output.max(2)[1]
+    #      _, decoder_guess = decoder_output.topk(1)
+    #      output_tensor.append(decoder_guess)
+    #      if decoder_guess != target_tensor[:,di]:
+    #          errors += 1
+    #          error = True
+    #      #decoder_input = target_tensor[:,di].view([1,1])
+    #      decoder_input = decoder_guess.squeeze().detach().view([1,1])
+    #      total += 1
+
+    use_teacher_forcing = False# if random.random() < 0.5 else False
+
+    if use_teacher_forcing:
+        for di in range(input_length):
+            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+            topv, topi = decoder_output.topk(1)
+            output_tensor.append(topi)
+            decoder_input = target_tensor[:,di].view([1,1])
+    else:
+        for di in range(input_length):
+            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+            topv, topi = decoder_output.topk(1)
+            output_tensor.append(topi)
+            if topi != target_tensor[:,di]:
+                errors += 1
+                error = True
+            decoder_input = topi.squeeze().detach().view([1,1]) # detach from history as input
+            total += 1
+
 
     if it < 10:
     #if error:
-        print('input : ', chordFromIndex(input_tensor.view(-1), listeA0))
-        print('output : ', chordFromIndex(torch.tensor(output_tensor).view(-1), listeA0))
-        print('target : ', chordFromIndex(target_tensor.view(-1), listeA0))
+        print('input : ', input_tensor.view(-1))
+        print('output : ', torch.tensor(output_tensor).view(-1))
+        print('target : ', target_tensor.view(-1))
 
     # use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
     #

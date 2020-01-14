@@ -38,7 +38,6 @@ class EncoderRNN(nn.Module):
     def forward(self, input, hidden):
         batch_size = input.size()[0]
         embedded = self.embedding(input)
-        #input = input.type(torch.FloatTensor)
         output, hidden = self.lstm(embedded.view([batch_size, 1,self.hidden_size]), hidden)
         return output, hidden
 
@@ -71,9 +70,7 @@ class DecoderRNN(nn.Module):
         return (hidden, hidden)
 
 
-teacher_forcing_ratio = 0.5
-
-def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, device):
+def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion, teacher_forcing_ratio, device):
     batch_size = input_tensor.size()[0]
 
     encoder_hidden = encoder.initHidden(batch_size)
@@ -82,9 +79,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
     decoder_optimizer.zero_grad()
 
     loss = 0
-
-    #encoder_output, encoder_hidden = encoder(input_tensor, encoder_hidden)
-    #decoder_input = torch.zeros([4,8], device=device).to(torch.int64)
 
     input_length = input_tensor.size()[1]
 
@@ -111,24 +105,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach().view([batch_size,1]) # detach from history as input
 
-
-    # if use_teacher_forcing:
-    #     # Teacher forcing: Feed the target as the next input
-    #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-    #     #decoder_output = torch.reshape(decoder_output, (4,8))
-    #     #target_tensor = torch.reshape(target_tensor,(1,4*8))
-    #     for batch in range(batch_size):
-    #         loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
-    #     decoder_input = target_tensor  # Teacher forcing
-    #
-    # else:
-    #     # Without teacher forcing: use its own predictions as the next input
-    #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-    #     #decoder_output = torch.reshape(decoder_output, (4,8))
-    #     decoder_input = decoder_output.detach()  # detach from history as input
-    #     for batch in range(batch_size):
-    #         loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
-
     loss.backward()
 
     encoder_optimizer.step()
@@ -149,33 +125,22 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
-def trainIters(encoder, decoder, data_loader, device, print_every=1000, plot_every=500, learning_rate=0.01):
+def trainIters(encoder, decoder, data_loader, device, teacher_forcing_ratio, print_every=1000, plot_every=500, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
 
-    #encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     encoder_optimizer = optim.Adam(encoder.parameters(), lr = learning_rate)
-    #decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.Adam(decoder.parameters(), lr = learning_rate)
     loss_function = nn.NLLLoss().to(device)
 
     for iter, batch in enumerate(data_loader):
-        #input_tensor = batch[:,:8,:].to(torch.int64)
-        #target_tensor = batch[:,8:,:].to(torch.int64)
         input_tensor = batch[:,:8].to(torch.int64).to(device)#, requires_grad=True)
-        #input_tensor = batch[:,:8].to(torch.int64).requires_grad(True)
         target_tensor = batch[:,8:].to(torch.int64).to(device)
-        # target_tensor = torch.zeros([4,8])
-        # for k in range(4):
-        #     for t in range(8):
-        #         for j in range(25):
-        #             if(target_tensor2[k,t,j]==1):
-        #                 target_tensor[k,t] = j
 
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, loss_function, device)
+                     decoder, encoder_optimizer, decoder_optimizer, loss_function, teacher_forcing_ratio, device)
 
         print_loss_total += loss
         plot_loss_total += loss

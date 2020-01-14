@@ -15,7 +15,7 @@ Fontamentale_up = {
     'C#':2,
     'D':3,
     'D#':4,
-    'E':5, 
+    'E':5,
     'F':6,
     'F#':7,
     'G':8,
@@ -37,7 +37,8 @@ new_listA0 = []
 
 
 def list_of_alphabet(alphabet):
-    theList = list(set(alphabet.values()))
+    d = {'a0': a0, 'a1': a1,'a2': a2,'a3': a3,'a5': a5}
+    theList = list(set(d[alphabet].values()))
     theList.remove('N')
     new_list = []
     for i in range(len(Fontamentale_keys)):
@@ -47,8 +48,8 @@ def list_of_alphabet(alphabet):
     return new_list
 
 
-new_listA0 = list_of_alphabet(a0)
-new_listA1 = list_of_alphabet(a1)
-new_listA2 = list_of_alphabet(a2)
-new_listA3 = list_of_alphabet(a3)
-new_listA5 = list_of_alphabet(a5)
+#new_listA0 = list_of_alphabet(a0)
+#new_listA1 = list_of_alphabet(a1)
+#new_listA2 = list_of_alphabet(a2)
+#new_listA3 = list_of_alphabet(a3)
+#new_listA5 = list_of_alphabet(a5)

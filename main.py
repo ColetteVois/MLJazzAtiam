@@ -22,11 +22,14 @@ parser.add_argument('--device', type = str, default = 'cpu', help = 'Device to u
 parser.add_argument('--alphabet', type = str, default = 'a0', help = 'Chords Alphabet')
 parser.add_argument('--batch', type = int, default = 50, help = 'Batch size')
 parser.add_argument('--hidden', type = int, default = 256, help = 'Hidden state size')
+parser.add_argument('--dropout', type = int, default = 0.1, help = 'dropout_rate')
 parser.add_argument('--teacherForcing', type = float, default = 0.5, help = 'Teacher forcing ratio in training')
 parser.add_argument('--saveEncoder', type = str, default = 'encoder.dict', help = 'Name of encoder savefile')
 parser.add_argument('--saveDecoder', type = str, default = 'decoder.dict', help = 'Name of decoder savefile')
 args = parser.parse_args()
 print(args)
+
+max_epochs = 5
 
 
 if (args.device != 'cpu'):
@@ -44,12 +47,12 @@ alpha_size = len(chordsList)
 
 if args.model == "MLP":
     #Dataloader Train
-    chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_train.csv', transform=transforms.Compose([dl.ReduChord(alphabet), dl.OneHotVector(chordsList)]))
+    chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_train.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
     print("Number of training sequences : ", len(chordSeqDatasetTrain))
     dataloader_train = DataLoader(chordSeqDatasetTrain, batch_size=args.batch, shuffle=True, num_workers=4)
 
     #Dataloader Test
-    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(alphabet), dl.OneHotVector(chordsList)]))
+    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
     print("Number of test sequences : ", len(chordSeqDatasetTest))
     dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=1, shuffle=True, num_workers=4)
 
@@ -58,15 +61,22 @@ if args.model == "MLP":
     #Model
     modelMLP = MLP.MLP(alpha_size).to(args.device)
 
-    #Start Training
-    print("Start Training")
-    MLP.trainIters(modelMLP, dataloader_train, print_every=500, plot_every = 2)
-    torch.save(modelMLP.state_dict(), 'MLP.dict')
+    for epoch in range(max_epochs):
+        print("Epoch ", epoch)
+        #Start Training
+        print("Start Training")
+        modelMLP.train()
+        MLP.trainIters(modelMLP, dataloader_train, args.device, print_every=20, plot_every = 2, learning_rate = 0.0001)
 
-    #Start Test
-    print("Start Test")
-    # modelMLP.load_state_dict(torch.load('MLP.dict'))
-    errors,total = evalMLP.evalIters(modelMLP, dataloader_test)
+
+        #Start Test
+        print("Start Test")
+        # modelMLP.load_state_dict(torch.load('MLP.dict'))
+        modelMLP.eval()
+        errors,total = evalMLP.evalIters(modelMLP, dataloader_test)
+        print(errors/total*100, '% d erreurs')
+
+    torch.save(modelMLP.state_dict(), 'MLP.dict')
 
 if args.model == "LSTM":
     #Dataloader Train
@@ -81,20 +91,27 @@ if args.model == "LSTM":
 
     print('Dataloader created\n')
 
-    encoder = lstm.EncoderRNN(alpha_size, args.hidden, alpha_size, args.device).to(args.device)
-    decoder = lstm.DecoderRNN(args.hidden, alpha_size, alpha_size, args.device).to(args.device)
+    encoder = lstm.EncoderRNN(alpha_size, args.hidden, alpha_size, args.dropout, args.device).to(args.device)
+    decoder = lstm.DecoderRNN(args.hidden, alpha_size, alpha_size, args.dropout, args.device).to(args.device)
 
-    #Start Training
-    print("Start Training")
-    # lstm.trainIters(encoder, decoder, dataloader_train, args.device, args.teacherForcing, print_every=500, plot_every = 2, learning_rate = 0.0001)
-    # torch.save(encoder.state_dict(), args.saveEncoder)
-    # torch.save(decoder.state_dict(), args.saveDecoder)
+    for epoch in range(max_epochs):
+        print("Epoch ", epoch)
 
-    #Start Test
-    print("Start Test")
-    encoder.load_state_dict(torch.load('encoder_save.dict', map_location = torch.device('cpu')))
-    decoder.load_state_dict(torch.load('decoder_save.dict', map_location = torch.device('cpu')))
-    errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
+        #Start Training
+        print("Start Training")
+        encoder.train()
+        decoder.train()
+        lstm.trainIters(encoder, decoder, dataloader_train, args.device, epoch/max_epochs,
+            print_every=500, plot_every = 2, learning_rate = 0.00001)
 
+        #Start Test
+        print("Start Test")
+        encoder.eval()
+        decoder.eval()
+        encoder.load_state_dict(torch.load('encoder_save.dict', map_location = torch.device('cpu')))
+        decoder.load_state_dict(torch.load('decoder_save.dict', map_location = torch.device('cpu')))
+        errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
+        print(errors/total*100, '% d erreurs')
 
-print(errors/total*100, '% d erreurs')
+    torch.save(encoder.state_dict(), args.saveEncoder)
+    torch.save(decoder.state_dict(), args.saveDecoder)

@@ -12,8 +12,6 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
@@ -33,10 +31,11 @@ class MLP(nn.Module):
         self.alpha_size = alpha_size
         self.lin1 = nn.Linear(8*alpha_size, 100)
         self.lin2 = nn.Linear(100, 50)
-        self.lin21 = nn.Linear(50,10)
-        self.lin22 = nn.Linear(10,50)
         self.lin3 = nn.Linear(50, 100)
         self.lin4 = nn.Linear(100,8*alpha_size)
+        self.softmax = nn.LogSoftmax(dim=2)
+        self.dropout = nn.Dropout(p=0)
+
         # self.layers = nn.Sequential(
         #     nn.Linear(8*alpha_size, 100),
         #     nn.ReLU(),
@@ -51,11 +50,11 @@ class MLP(nn.Module):
         output = x.view(x.size(0), -1)
         output = F.relu(self.lin1(output))
         output = F.relu(self.lin2(output))
-        output = F.relu(self.lin21(output))
-        output = F.relu(self.lin22(output))
         output = F.relu(self.lin3(output))
         output = self.lin4(output)
-        return output.view(output.size(0), 8, self.alpha_size)
+        output = output.view(output.size(0), 8, self.alpha_size)
+        output = self.softmax(output)
+        return output
 
 
 teacher_forcing_ratio = 0.5
@@ -91,18 +90,18 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
-def trainIters(model, data_loader, print_every=1000, plot_every=500, learning_rate=0.0001):
+def trainIters(model, data_loader, device, print_every=1000, plot_every=500, learning_rate=0.0001):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
     plot_loss_total = 0  # Reset every plot_every
 
     optimizer = optim.Adam(model.parameters(), lr = learning_rate)
-    loss_function = nn.MSELoss()
+    loss_function = nn.MSELoss().to(device)
 
     for iter, batch in enumerate(data_loader):
-        input_tensor = batch[:,:8].to(torch.float)#, requires_grad=True)
-        target_tensor = batch[:,8:].to(torch.float)
+        input_tensor = batch[:,:8].to(torch.float).to(device)#, requires_grad=True)
+        target_tensor = batch[:,8:].to(torch.float).to(device)
 
         loss = train(input_tensor, target_tensor, model, optimizer, loss_function)
 

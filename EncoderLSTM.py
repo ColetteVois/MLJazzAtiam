@@ -26,14 +26,14 @@ def showPlot(points):
     plt.savefig('fig.png')
 
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, dict_size, device):
+    def __init__(self, input_size, hidden_size, dict_size, dropout, device):
         super(EncoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.dict_size = dict_size
         self.device = device
 
         self.embedding = nn.Embedding(dict_size, hidden_size)
-        self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
+        self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True, dropout = dropout)
 
     def forward(self, input, hidden):
         batch_size = input.size()[0]
@@ -46,14 +46,14 @@ class EncoderRNN(nn.Module):
         return (hidden, hidden)
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dict_size, device):
+    def __init__(self, hidden_size, output_size, dict_size, dropout, device):
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.device = device
 
         self.embedding = nn.Embedding(dict_size, hidden_size)
         #self.lstm = nn.LSTM(output_size, hidden_size, batch_first = True)
-        self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True)
+        self.lstm = nn.LSTM(input_size=hidden_size, num_layers=1, hidden_size=hidden_size, batch_first = True, dropout = dropout)
         self.out = nn.Linear(hidden_size,output_size)
         self.softmax = nn.LogSoftmax(dim=2)
 
@@ -125,7 +125,7 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
-def trainIters(encoder, decoder, data_loader, device, teacher_forcing_ratio, print_every=1000, plot_every=500, learning_rate=0.01):
+def trainIters(encoder, decoder, data_loader, device, epochRatio, print_every=1000, plot_every=500, learning_rate=0.01):
     start = time.time()
     plot_losses = []
     print_loss_total = 0  # Reset every print_every
@@ -139,8 +139,10 @@ def trainIters(encoder, decoder, data_loader, device, teacher_forcing_ratio, pri
         input_tensor = batch[:,:8].to(torch.int64).to(device)#, requires_grad=True)
         target_tensor = batch[:,8:].to(torch.int64).to(device)
 
+        tf_ratio = 1 - epochRatio
+
         loss = train(input_tensor, target_tensor, encoder,
-                     decoder, encoder_optimizer, decoder_optimizer, loss_function, teacher_forcing_ratio, device)
+                     decoder, encoder_optimizer, decoder_optimizer, loss_function, tf_ratio, device)
 
         print_loss_total += loss
         plot_loss_total += loss

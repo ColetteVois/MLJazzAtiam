@@ -21,6 +21,7 @@ import numpy as np
 
 def evalIters(model, data_loader):
 
+
     total_errors = 0
     total = 0
 
@@ -29,21 +30,24 @@ def evalIters(model, data_loader):
         target_tensor = batch[:,8:].to(torch.float)
         output_tensor = model(input_tensor)
 
+        batch_size = input_tensor.size()[0]
+
         _, input_vect = torch.max(input_tensor,2)
         _, target_vect = torch.max(target_tensor,2)
         _, output_vect = torch.max(output_tensor,2)
 
-        for i in range(8):
-            if target_vect[:,i] != output_vect[:,i]:
-                total_errors += 1
-            total +=1
+        for l in range(batch_size):
+            for i in range(8):
+                if target_vect[l,i] != output_vect[l,i]:
+                    total_errors += 1
+                total +=1
 
         if iter % 5000 == 0:
             print(iter)
 
-        if iter<10:
-            print('input : ', input_vect)
-            print('output : ', output_vect)
-            print('target : ', target_vect)
+        # if iter<10:
+        #     print('input : ', input_vect[0])
+        #     print('output : ', output_vect[0])
+        #     print('target : ', target_vect[0])
 
     return total_errors, total

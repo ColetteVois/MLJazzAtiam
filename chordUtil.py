@@ -107,6 +107,7 @@ a1 = {
     'sus4':    'N',
     'sus2':    'N',
     '7':       'maj',
+    '6':        'maj',
     'maj7':    'maj',
     'min7':    'min',
     'minmaj7': 'min',
@@ -130,7 +131,7 @@ a1 = {
     '1':       'N',
     '5':       'N',
     '': 'N'} #alphabet = maj/min/dim -> harmonisation gamme majeur en accords de 3 sons
-      
+
 a2 = {
     'maj':     'maj',
     'min':     'min',
@@ -212,7 +213,7 @@ a5 = {
     'min6':    'min6',
     'dim7':    'dim7',
     'hdim7':   'hdim7',
-    'hdim':    'hdim7', 
+    'hdim':    'hdim7',
     'maj9':    'maj7',
     'min9':    'min7',
     '9':       '7',
@@ -264,15 +265,15 @@ gammeKey = {
     'Cb':   'B',
     'Cbm':   'B:minor',
     'C':    'C',
-    'Cm':    'C:minor',   
+    'Cm':    'C:minor',
     'C#':   'C#',
     'C#m':    'C#:minor',
     'Db':   'C#',
-    'Dbm':    'C#:minor',  
+    'Dbm':    'C#:minor',
     'D':    'D',
     'Dm':    'D:minor',
     'D#':   'D#',
-    'D#m':    'D#:minor',   
+    'D#m':    'D#:minor',
     'Eb':   'D#',
     'Ebm':    'D#:minor',
     'E':    'E',
@@ -371,28 +372,28 @@ def reduChord(initChord, alpha= 'a1', transp = 0):
     Returns
     -------
     loss_function: function
-    '''    
+    '''
     if initChord == "":
         print("buuug")
     initChord, bass = initChord.split("/") if "/" in initChord else (initChord, "")
     root, qual = initChord.split(":") if ":" in initChord else (initChord, "")
     root, noChord = root.split("(") if "(" in root else (root, "")
-    qual, additionalNotes = qual.split("(") if "(" in qual else (qual, "")  
-    
+    qual, additionalNotes = qual.split("(") if "(" in qual else (qual, "")
+
     root = gamme[root]
     for i in range(transp):
         print("transpo")
         root = tr[root]
-    
+
     if qual == "":
         if root == "N" or noChord != "":
             finalChord = "N"
         else:
             finalChord = root + ':maj'
-    
+
     elif root == "N":
         finalChord = "N"
-    
+
     else:
         if alpha == 'a1':
                 qual = a1[qual]

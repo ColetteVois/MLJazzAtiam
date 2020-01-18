@@ -63,11 +63,12 @@ class ClassVector(object):
 class OneHotVector(object):
     def __init__(self, liste = listeA0):
         self.liste = liste #Alphabet used for reduction
+        self.alpha_size = len(liste)
 
     def __call__(self, chords, liste = listeA0):
-        oneVect = torch.zeros([16, 25], dtype=torch.int64)
+        oneVect = torch.zeros([16, self.alpha_size], dtype=torch.int64)
         for i in range(16):
-            numChord = liste.index(chords[i])
+            numChord = self.liste.index(chords[i])
             oneVect[i, numChord] = 1
         return oneVect
 

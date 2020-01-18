@@ -22,7 +22,7 @@ parser.add_argument('--device', type = str, default = 'cpu', help = 'Device to u
 parser.add_argument('--alphabet', type = str, default = 'a0', help = 'Chords Alphabet')
 parser.add_argument('--batch', type = int, default = 50, help = 'Batch size')
 parser.add_argument('--hidden', type = int, default = 256, help = 'Hidden state size')
-parser.add_argument('--dropout', type = int, default = 0.1, help = 'dropout_rate')
+parser.add_argument('--dropout', type = float, default = 0, help = 'dropout_rate')
 parser.add_argument('--teacherForcing', type = float, default = 0.5, help = 'Teacher forcing ratio in training')
 parser.add_argument('--saveEncoder', type = str, default = 'encoder.dict', help = 'Name of encoder savefile')
 parser.add_argument('--saveDecoder', type = str, default = 'decoder.dict', help = 'Name of decoder savefile')
@@ -42,6 +42,8 @@ dtype = torch.cuda.FloatTensor
 
 
 chordsList = list_of_alphabet(args.alphabet)
+print(chordsList)
+print(len(chordsList))
 #chordsList.append('SOS_TOKEN')
 alpha_size = len(chordsList)
 
@@ -52,22 +54,30 @@ if args.model == "MLP":
     dataloader_train = DataLoader(chordSeqDatasetTrain, batch_size=args.batch, shuffle=True, num_workers=4)
 
     #Dataloader Test
-    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
+    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_oneline.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
     print("Number of test sequences : ", len(chordSeqDatasetTest))
-    dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=1, shuffle=True, num_workers=4)
+    dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=args.batch//10, shuffle=True, num_workers=4)
+
+    #Dataloader Valid
+    chordSeqDatasetValid = dl.ChordSequencesDatasetClass('../data/preprocessed_data_validation.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
+    print("Number of validation sequences : ", len(chordSeqDatasetValid))
+    dataloader_valid = DataLoader(chordSeqDatasetValid, batch_size=1, shuffle=True, num_workers=4)
 
     print('Dataloader created\n')
 
     #Model
-    modelMLP = MLP.MLP(alpha_size).to(args.device)
+    modelMLP = MLP.MLP(alpha_size, args.dropout).to(args.device)
+
+    loss = []
 
     for epoch in range(max_epochs):
         print("Epoch ", epoch)
         #Start Training
         print("Start Training")
         modelMLP.train()
-        MLP.trainIters(modelMLP, dataloader_train, args.device, print_every=20, plot_every = 2, learning_rate = 0.0001)
+        lossep = MLP.trainIters(modelMLP, dataloader_train, args.device, print_every=20, plot_every = 2, learning_rate = 0.0001)
 
+        loss = loss + lossep
 
         #Start Test
         print("Start Test")
@@ -78,14 +88,24 @@ if args.model == "MLP":
 
     torch.save(modelMLP.state_dict(), 'MLP.dict')
 
+
+    plt.figure()
+    plt.plot(loss)
+    plt.savefig('fig.png')
+    #modelMLP.load_state_dict(torch.load('dict/MLP_a0.dict'))
+    #modelMLP.eval()
+    #errors,total = evalMLP.evalIters(modelMLP, dataloader_valid)
+    #print(errors/total*100, '% d erreurs')
+
+
 if args.model == "LSTM":
     #Dataloader Train
-    chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_train.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
+    chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_oneline.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
     print("Number of training sequences : ", len(chordSeqDatasetTrain))
     dataloader_train = DataLoader(chordSeqDatasetTrain, batch_size=args.batch, shuffle=True, num_workers=4)
 
     #Dataloader Test
-    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
+    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_oneline.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
     print("Number of test sequences : ", len(chordSeqDatasetTest))
     dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=1, shuffle=True, num_workers=4)
 
@@ -108,8 +128,8 @@ if args.model == "LSTM":
         print("Start Test")
         encoder.eval()
         decoder.eval()
-        encoder.load_state_dict(torch.load('encoder_save.dict', map_location = torch.device('cpu')))
-        decoder.load_state_dict(torch.load('decoder_save.dict', map_location = torch.device('cpu')))
+        # encoder.load_state_dict(torch.load('encoder_save.dict', map_location = torch.device('cpu')))
+        # decoder.load_state_dict(torch.load('decoder_save.dict', map_location = torch.device('cpu')))
         errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
         print(errors/total*100, '% d erreurs')
 

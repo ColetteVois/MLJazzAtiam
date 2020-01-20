@@ -45,6 +45,11 @@ You need to:
 ### Small description of the repository
 Description:
         <ul>
-        <li></li>
+        <li>préProcessing/dataloader: [preProcessing.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/preProcessing.py), [create_dataloader.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/create_dataloader.py), [split_dataset.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/split_dataset.py), [get_the_list.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/get_the_list.py), [create_dataloader.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/chordUtil.py, https://github.com/ColetteVois/MLJazzAtiam/blob/master/create_dataloader.py) Zitian, Théo            
+        <li>alphabet: [alphabet_exacte.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/alphabet_exacte.py), [chordUtil.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/alphabet_redu.py), [chordUtil.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/chordUtil.py), [create_dataloader.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/create_dataloader.py) Yujia, Colette
+        <li>training: [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py), [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py) Théo                 
+        <li>evaluation: [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py), [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py) Théo                
+        <li>ACE: [ACEScore.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ACEScore.py), [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py), [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py), [distance.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/distance.py) Zitian, Yujia
+        <li>loss function: [ChordsAlphabets.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/ChordsAlphabets.py), [representation.py](https://github.com/ColetteVois/MLJazzAtiam/blob/master/representation.py) Zitian, Colette
+         </li>
         </ul>
-        

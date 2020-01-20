@@ -23,9 +23,11 @@ def preProcessing(FolderName):
         # only save the beat and Chord imformations
         for i in range(len(Content)-1):
             CurrentLine = Content[i+1].split(' ')
-            CurrentBeat = int((CurrentLine[2]))
-            CurrentChord = CurrentLine[4]
-            ExtraBeatChord.append([CurrentBeat,CurrentChord])
+            #print(CurrentLine)
+            if(len(CurrentLine)>=4):
+                CurrentBeat = int((CurrentLine[2]))
+                CurrentChord = CurrentLine[4]
+                ExtraBeatChord.append([CurrentBeat,CurrentChord])
 
         Tonality = CurrentLine[::-1][0];
 

@@ -51,5 +51,10 @@ def preProcessing(FolderName):
                 csvFile.write(temp[15] + '\n')
     csvFile.close()
 
-#ChordSequence = preProcessing('try_xlab')
+ChordSequence = preProcessing('../data/train/')
+os.rename(r'../data/preprocessed_data.csv',r'../data/preprocessed_data_train.csv')
+ChordSequence = preProcessing('../data/test/')
+os.rename(r'../data/preprocessed_data.csv',r'../data/preprocessed_data_test.csv')
+ChordSequence = preProcessing('../data/validation/')
+os.rename(r'../data/preprocessed_data.csv',r'../data/preprocessed_data_validation.csv')
 #print(ChordSequence)

@@ -29,6 +29,7 @@ parser.add_argument('--saveDecoder', type = str, default = 'decoder.dict', help 
 args = parser.parse_args()
 print(args)
 
+
 max_epochs = 5
 
 
@@ -41,6 +42,7 @@ print('Optimization will be on ' + str(args.device) + '.')
 dtype = torch.cuda.FloatTensor
 
 
+#Import de l'alphabet utilisé dans une liste
 chordsList = list_of_alphabet(args.alphabet)
 print(chordsList)
 print(len(chordsList))
@@ -100,12 +102,12 @@ if args.model == "MLP":
 
 if args.model == "LSTM":
     #Dataloader Train
-    chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_oneline.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
+    chordSeqDatasetTrain = dl.ChordSequencesDatasetClass('../data/preprocessed_data_train.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
     print("Number of training sequences : ", len(chordSeqDatasetTrain))
     dataloader_train = DataLoader(chordSeqDatasetTrain, batch_size=args.batch, shuffle=True, num_workers=4)
 
     #Dataloader Test
-    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_oneline.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
+    chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
     print("Number of test sequences : ", len(chordSeqDatasetTest))
     dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=1, shuffle=True, num_workers=4)
 
@@ -114,6 +116,8 @@ if args.model == "LSTM":
     encoder = lstm.EncoderRNN(alpha_size, args.hidden, alpha_size, args.dropout, args.device).to(args.device)
     decoder = lstm.DecoderRNN(args.hidden, alpha_size, alpha_size, args.dropout, args.device).to(args.device)
 
+    loss = []
+
     for epoch in range(max_epochs):
         print("Epoch ", epoch)
 
@@ -121,8 +125,10 @@ if args.model == "LSTM":
         print("Start Training")
         encoder.train()
         decoder.train()
-        lstm.trainIters(encoder, decoder, dataloader_train, args.device, epoch/max_epochs,
+        lossep = lstm.trainIters(encoder, decoder, dataloader_train, args.device, epoch/max_epochs,
             print_every=500, plot_every = 2, learning_rate = 0.00001)
+
+        loss = loss + lossep
 
         #Start Test
         print("Start Test")
@@ -132,6 +138,11 @@ if args.model == "LSTM":
         # decoder.load_state_dict(torch.load('decoder_save.dict', map_location = torch.device('cpu')))
         errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
         print(errors/total*100, '% d erreurs')
+
+
+    plt.figure()
+    plt.plot(loss)
+    plt.savefig('fig.png')
 
     torch.save(encoder.state_dict(), args.saveEncoder)
     torch.save(decoder.state_dict(), args.saveDecoder)

@@ -19,8 +19,18 @@ import matplotlib.ticker as ticker
 import numpy as np
 
 
-def evalIters(model, data_loader):
+def evalIters(model, data_loader, print_value = False):
+    '''
+    Boucle d'evaluation de l'encodeur-decodeur
+    inputs :
+    - model : nn.Module
+    - data_loader : pandas dataloader contenant les données de test
+    - print_value : booléen. True si on veut afficher des exemples
 
+    outputs :
+    - total_errors : int
+    - total : int
+    '''
 
     total_errors = 0
     total = 0
@@ -42,12 +52,10 @@ def evalIters(model, data_loader):
                     total_errors += 1
                 total +=1
 
-        if iter % 5000 == 0:
-            print(iter)
-
-        # if iter<10:
-        #     print('input : ', input_vect[0])
-        #     print('output : ', output_vect[0])
-        #     print('target : ', target_vect[0])
+        if print_value:
+            if iter<10:
+                print('input : ', input_vect[0])
+                print('output : ', output_vect[0])
+                print('target : ', target_vect[0])
 
     return total_errors, total

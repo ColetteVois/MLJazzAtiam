@@ -18,7 +18,24 @@ import numpy as np
 from create_dataloader import chordFromIndex
 
 def eval(input_tensor, target_tensor, encoder, decoder, it, print_value = False):
-    encoder_hidden = encoder.initHidden(1)
+    '''
+        Fonction evaluant un batch
+        inputs :
+        - input_tensor : torch.tensor de taille [batch_size, 8]
+        - target_tensor : torch.tensor de taille [batch_size, 8]
+        - encoder : nn.Module
+        - decoder : nn.Module
+        - it : int
+        - print_value : booléen. True si on veut afficher des exemples
+
+        outputs :
+        - errors : int
+        - total : int
+    '''
+
+    batch_size = input_tensor.size()[0]
+
+    encoder_hidden = encoder.initHidden(batch_size)
 
     errors = 0
     total = 0
@@ -30,89 +47,52 @@ def eval(input_tensor, target_tensor, encoder, decoder, it, print_value = False)
 
     decoder_hidden = encoder_hidden
 
-    #decoder_input = torch.autograd.Variable(torch.zeros(1, 1)).type(torch.LongTensor).to(device)
-    decoder_input = (25*torch.autograd.Variable(torch.zeros(1, 1))).type(torch.LongTensor)
+    decoder_input = (25*torch.autograd.Variable(torch.zeros(batch_size, 1))).type(torch.LongTensor)
 
     output_tensor = []
 
-    error = False
-
-    # for di in range(input_length):
-    #      decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-    #      #decoder_guess = decoder_output.max(2)[1]
-    #      _, decoder_guess = decoder_output.topk(1)
-    #      output_tensor.append(decoder_guess)
-    #      if decoder_guess != target_tensor[:,di]:
-    #          errors += 1
-    #          error = True
-    #      #decoder_input = target_tensor[:,di].view([1,1])
-    #      decoder_input = decoder_guess.squeeze().detach().view([1,1])
-    #      total += 1
-
-    use_teacher_forcing = False# if random.random() < 0.5 else False
-
-    if use_teacher_forcing:
-        for di in range(input_length):
-            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-            topv, topi = decoder_output.topk(1)
-            output_tensor.append(topi)
-            decoder_input = target_tensor[:,di].view([1,1])
-    else:
-        for di in range(input_length):
-            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-            topv, topi = decoder_output.topk(1)
-            output_tensor.append(topi)
-            if topi != target_tensor[:,di]:
-                errors += 1
-                error = True
-            decoder_input = topi.squeeze().detach().view([1,1]) # detach from history as input
-            total += 1
+    for di in range(input_length):
+        decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+        topv, topi = decoder_output.topk(1)
+        output_tensor.append(topi)
+        if topi != target_tensor[:,di]:
+            errors += 1
+        decoder_input = topi.squeeze().detach().view([1,1]) # detach from history as input
+        total += 1
 
 
-    if it < 10:
-    #if error:
-        print('input : ', input_tensor.view(-1))
-        print('output : ', torch.tensor(output_tensor).view(-1))
-        print('target : ', target_tensor.view(-1))
-
-    # use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-    #
-    # if use_teacher_forcing:
-    #     # Teacher forcing: Feed the target as the next input
-    #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-    #     #decoder_output = torch.reshape(decoder_output, (4,8))
-    #     #target_tensor = torch.reshape(target_tensor,(1,4*8))
-    #     for batch in range(batch_size):
-    #         loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
-    #     decoder_input = target_tensor  # Teacher forcing
-    #
-    # else:
-    #     # Without teacher forcing: use its own predictions as the next input
-    #     decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
-    #     #decoder_output = torch.reshape(decoder_output, (4,8))
-    #     decoder_input = decoder_output.detach()  # detach from history as input
-    #     for batch in range(batch_size):
-    #         loss += criterion(decoder_output[batch], target_tensor[batch].type(torch.LongTensor))
+    if print_value:
+        if it < 10:
+            print('input : ', input_tensor.view(-1))
+            print('output : ', torch.tensor(output_tensor).view(-1))
+            print('target : ', target_tensor.view(-1))
 
     return errors, total
 
 
 def evalIters(encoder, decoder, data_loader):
+    '''
+    Boucle d'evaluation de l'encodeur-decodeur
+    inputs :
+    - encoder : nn.Module
+    - decoder : nn.Module
+    - data_loader : pandas dataloader contenant les données de test
 
-    total_errors = 0
-    total = 0
+    outputs :
+    - total_errors : int
+    - total : int
+    '''
+
+    total_errors = 0 #nombre d'erreurs effectuées
+    total = 0 #nombre total d'accord comparés
 
     for iter, batch in enumerate(data_loader):
-        #input_tensor = batch[:,:8,:].to(torch.int64)
-        #target_tensor = batch[:,8:,:].to(torch.int64)
-        input_tensor = batch[:,:8].to(torch.int64)#, requires_grad=True)
+        input_tensor = batch[:,:8].to(torch.int64)
         target_tensor = batch[:,8:].to(torch.int64)
 
         errors, n = eval(input_tensor, target_tensor, encoder, decoder, iter, print_value = True)
 
         total_errors += errors
         total += n
-        if iter % 5000 == 0:
-            print(iter)
 
     return total_errors, total

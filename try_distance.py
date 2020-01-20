@@ -3,7 +3,7 @@
 """
 Created on Sat Dec 21 19:23:56 2019
 
-@author: stephane
+@author: yujiayang
 """
 
 from chordUtil import reduChord
@@ -32,11 +32,6 @@ Fontamentale_up = {
 Fontamentale_keys = list(Fontamentale_up)
 seperator = ':'
 new_listA0 = []
-#for i in range(len(Fontamentale_keys)):
-#    for j in range(len(listA0)):
-#        new_listA0.append(seperator.join([Fontamentale_keys[i],listA0[j]]))
-#new_listA0.append('N')
-
 
 
 def list_of_alphabet(alphabet):

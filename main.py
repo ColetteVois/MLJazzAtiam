@@ -77,7 +77,7 @@ if args.model == "MLP":
         #Start Training
         print("Start Training")
         modelMLP.train()
-        lossep = MLP.trainIters(modelMLP, dataloader_train, args.device, print_every=20, plot_every = 2, learning_rate = 0.0001)
+        lossep = MLP.trainIters(modelMLP, dataloader_train, args.device, learning_rate = 0.0001)
 
         loss = loss + lossep
 
@@ -126,7 +126,7 @@ if args.model == "LSTM":
         encoder.train()
         decoder.train()
         lossep = lstm.trainIters(encoder, decoder, dataloader_train, args.device, epoch/max_epochs,
-            print_every=500, plot_every = 2, learning_rate = 0.00001)
+           learning_rate = 0.0001)
 
         loss = loss + lossep
 
@@ -147,7 +147,5 @@ if args.model == "LSTM":
     # decoder.eval()
     # errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
     # print(errors/total*100, '% d erreurs test')
-    encoder.eval()
-    decoder.eval()
     errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_valid)
     print(errors/total*100, '% d erreurs validation')

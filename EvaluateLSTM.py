@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 from create_dataloader import chordFromIndex
+import get_the_list
+
 
 def eval(input_tensor, target_tensor, encoder, decoder, it, print_value = False):
     '''
@@ -64,8 +66,11 @@ def eval(input_tensor, target_tensor, encoder, decoder, it, print_value = False)
     if print_value:
         if it < 10:
             print('input : ', input_tensor.view(-1))
+            #print(chordFromIndex(input_tensor.view(-1), liste))
             print('output : ', torch.tensor(output_tensor).view(-1))
+            #print(chordFromIndex(torch.tensor(output_tensor).view(-1), liste))
             print('target : ', target_tensor.view(-1))
+            #print(chordFromIndex(target_tensor.view(-1), liste))
 
     return errors, total
 

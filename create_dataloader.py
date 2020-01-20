@@ -75,5 +75,5 @@ class OneHotVector(object):
 def chordFromIndex(idx_vect, liste):
     chord_seq = "";
     for idx in idx_vect:
-        chord_seq = chord_seq + liste[idx] + ", "
+        chord_seq = chord_seq + liste[idx] + "& "
     return chord_seq

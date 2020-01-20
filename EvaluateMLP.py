@@ -12,11 +12,12 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
+
 
 
 def evalIters(model, data_loader, print_value = False):

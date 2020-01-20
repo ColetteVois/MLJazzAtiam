@@ -173,6 +173,7 @@ a3 = {
     'sus4':    'sus',
     'sus2':    'sus',
     '7':       '7',
+    '6':        'maj',
     'maj7':    'maj7',
     'min7':    'min7',
     'minmaj7': 'min',

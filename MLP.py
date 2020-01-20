@@ -23,7 +23,10 @@ class MLP(nn.Module):
         self.softmax = nn.LogSoftmax(dim=2)
 
         self.layers = nn.Sequential(
-            nn.Linear(8*alpha_size, 100),
+            nn.Linear(8*alpha_size, 150),
+            nn.ReLU(),
+            nn.Dropout(p = dropout),
+            nn.Linear(150, 100),
             nn.ReLU(),
             nn.Dropout(p = dropout),
             nn.Linear(100, 50),

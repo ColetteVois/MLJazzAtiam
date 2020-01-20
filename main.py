@@ -30,7 +30,7 @@ args = parser.parse_args()
 print(args)
 
 
-max_epochs = 5
+max_epochs = 10
 
 
 if (args.device != 'cpu'):
@@ -61,7 +61,7 @@ if args.model == "MLP":
     dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=args.batch//10, shuffle=True, num_workers=4)
 
     #Dataloader Valid
-    chordSeqDatasetValid = dl.ChordSequencesDatasetClass('../data/preprocessed_data_validation.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
+    chordSeqDatasetValid = dl.ChordSequencesDatasetClass('../data/preprocessed_data_oneline.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.OneHotVector(chordsList)]))
     print("Number of validation sequences : ", len(chordSeqDatasetValid))
     dataloader_valid = DataLoader(chordSeqDatasetValid, batch_size=1, shuffle=True, num_workers=4)
 
@@ -83,7 +83,6 @@ if args.model == "MLP":
 
         #Start Test
         print("Start Test")
-        # modelMLP.load_state_dict(torch.load('MLP.dict'))
         modelMLP.eval()
         errors,total = evalMLP.evalIters(modelMLP, dataloader_test)
         print(errors/total*100, '% d erreurs')
@@ -91,13 +90,10 @@ if args.model == "MLP":
     torch.save(modelMLP.state_dict(), 'MLP.dict')
 
 
-    plt.figure()
-    plt.plot(loss)
-    plt.savefig('fig.png')
-    #modelMLP.load_state_dict(torch.load('dict/MLP_a0.dict'))
-    #modelMLP.eval()
-    #errors,total = evalMLP.evalIters(modelMLP, dataloader_valid)
-    #print(errors/total*100, '% d erreurs')
+    # modelMLP.load_state_dict(torch.load('gpuresults/MLP_a5.dict', map_location = torch.device('cpu')))
+    modelMLP.eval()
+    errors,total = evalMLP.evalIters(modelMLP, dataloader_valid, print_value = True)
+    print(errors/total*100, '% d erreurs')
 
 
 if args.model == "LSTM":
@@ -110,6 +106,10 @@ if args.model == "LSTM":
     chordSeqDatasetTest = dl.ChordSequencesDatasetClass('../data/preprocessed_data_test.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
     print("Number of test sequences : ", len(chordSeqDatasetTest))
     dataloader_test = DataLoader(chordSeqDatasetTest, batch_size=1, shuffle=True, num_workers=4)
+
+    chordSeqDatasetValid = dl.ChordSequencesDatasetClass('../data/preprocessed_data_validation.csv', transform=transforms.Compose([dl.ReduChord(args.alphabet), dl.ClassVector(chordsList)]))
+    print("Number of validation sequences : ", len(chordSeqDatasetValid))
+    dataloader_valid = DataLoader(chordSeqDatasetValid, batch_size=1, shuffle=True, num_workers=4)
 
     print('Dataloader created\n')
 
@@ -134,15 +134,20 @@ if args.model == "LSTM":
         print("Start Test")
         encoder.eval()
         decoder.eval()
-        # encoder.load_state_dict(torch.load('encoder_save.dict', map_location = torch.device('cpu')))
-        # decoder.load_state_dict(torch.load('decoder_save.dict', map_location = torch.device('cpu')))
         errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
         print(errors/total*100, '% d erreurs')
 
 
-    plt.figure()
-    plt.plot(loss)
-    plt.savefig('fig.png')
-
     torch.save(encoder.state_dict(), args.saveEncoder)
     torch.save(decoder.state_dict(), args.saveDecoder)
+
+    # encoder.load_state_dict(torch.load('gpuresults/encoder_'+args.alphabet+'.dict', map_location = torch.device('cpu')))
+    # encoder.eval()
+    # decoder.load_state_dict(torch.load('gpuresults/decoder_'+args.alphabet+'.dict', map_location = torch.device('cpu')))
+    # decoder.eval()
+    # errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_test)
+    # print(errors/total*100, '% d erreurs test')
+    encoder.eval()
+    decoder.eval()
+    errors,total = evalLSTM.evalIters(encoder, decoder, dataloader_valid)
+    print(errors/total*100, '% d erreurs validation')

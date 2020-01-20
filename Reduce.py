@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+@author: Zitian
+"""
+
 # ATTENTION： When you use this function, please make sure every file in the input Folder
 #             is a .xlab file. (Remove 'READMD.txt' in the 'jazz_xlab' folder)
 
